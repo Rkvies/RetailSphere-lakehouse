@@ -1,0 +1,4 @@
+customer_id,country,segment
+C001,United Kingdom,Retail
+C002,France,Retail
+C003,,Retail

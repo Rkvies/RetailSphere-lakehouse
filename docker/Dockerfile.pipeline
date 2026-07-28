@@ -1,0 +1,15 @@
+# docker/Dockerfile.pipeline - containerizes the full pipeline runner,
+# extending Phase 6's data-generator-only Dockerfile
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y openjdk-17-jre-headless && rm -rf /var/lib/apt/lists/*
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY src/ src/
+COPY config/ config/
+
+ENTRYPOINT ["python", "-m"]
+CMD ["src.pipelines.run_bronze_pipeline"]

@@ -1,0 +1,144 @@
+tables:
+  sales:
+    source_path: "sales/"
+    schema:
+      - {name: invoice_id, type: string}
+      - {name: stock_code, type: string}
+      - {name: quantity, type: integer}
+      - {name: unit_price, type: double}
+      - {name: customer_id, type: string}
+      - {name: store_id, type: string}
+      - {name: country, type: string}
+      - {name: invoice_date, type: timestamp}
+      - {name: sale_date, type: date}
+    business_key: ["invoice_id", "stock_code"]
+    scd_type: null
+    partition_by: ["sale_date"]
+    dq_rules:
+      - {type: not_null, column: invoice_id}
+      - {type: non_negative, column: quantity}
+      - {type: allowed_values, column: country, allowed: ["United Kingdom", "France", "Germany", "USA", "Australia"]}
+
+  customer:
+    source_path: "customer/"
+    schema:
+      - {name: customer_id, type: string}
+      - {name: country, type: string}
+      - {name: segment, type: string}
+    business_key: ["customer_id"]
+    scd_type: 2
+    tracked_columns: ["country", "segment"]
+    surrogate_key_col: "customer_sk"
+    partition_by: null
+    dq_rules:
+      - {type: not_null, column: customer_id}
+      - {type: not_null, column: country}
+
+  product:
+    source_path: "product/"
+    schema:
+      - {name: stock_code, type: string}
+      - {name: description, type: string}
+      - {name: unit_price, type: double}
+      - {name: supplier_id, type: string}
+    business_key: ["stock_code"]
+    scd_type: 2
+    tracked_columns: ["unit_price"]
+    surrogate_key_col: "product_sk"
+    partition_by: null
+    dq_rules:
+      - {type: not_null, column: stock_code}
+      - {type: non_negative, column: unit_price}
+
+  store:
+    source_path: "store/"
+    schema:
+      - {name: store_id, type: string}
+      - {name: region, type: string}
+      - {name: country, type: string}
+      - {name: store_name, type: string}
+    business_key: ["store_id"]
+    scd_type: null   # SCD Type 1 - handled as a simple overwrite, not via scd2_handler
+    partition_by: null
+    dq_rules:
+      - {type: not_null, column: store_id}
+
+  supplier:
+    source_path: "supplier/"
+    schema:
+      - {name: supplier_id, type: string}
+      - {name: supplier_name, type: string}
+    business_key: ["supplier_id"]
+    scd_type: null
+    partition_by: null
+    dq_rules:
+      - {type: not_null, column: supplier_id}
+
+  inventory:
+    source_path: "inventory/"
+    schema:
+      - {name: store_id, type: string}
+      - {name: stock_code, type: string}
+      - {name: snapshot_date, type: date}
+      - {name: stock_on_hand, type: integer}
+    business_key: ["store_id", "stock_code", "snapshot_date"]
+    scd_type: null
+    partition_by: ["snapshot_date"]
+    dq_rules:
+      - {type: not_null, column: store_id}
+      - {type: non_negative, column: stock_on_hand}
+
+  promotions:
+    source_path: "promotions/"
+    schema:
+      - {name: promo_id, type: string}
+      - {name: stock_code, type: string}
+      - {name: start_date, type: date}
+      - {name: end_date, type: date}
+      - {name: discount_pct, type: double}
+    business_key: ["promo_id"]
+    scd_type: null
+    partition_by: null
+    dq_rules:
+      - {type: not_null, column: promo_id}
+
+  online_orders:
+    source_path: "online_orders/"
+    schema:
+      - {name: order_id, type: string}
+      - {name: customer_id, type: string}
+      - {name: stock_code, type: string}
+      - {name: order_status, type: string}
+      - {name: order_date, type: date}
+    business_key: ["order_id"]
+    scd_type: null
+    partition_by: ["order_date"]
+    dq_rules:
+      - {type: not_null, column: order_id}
+
+  shipping:
+    source_path: "shipping/"
+    schema:
+      - {name: shipment_id, type: string}
+      - {name: order_id, type: string}
+      - {name: carrier, type: string}
+      - {name: ship_date, type: date}
+    business_key: ["shipment_id"]
+    scd_type: null
+    partition_by: null
+    dq_rules:
+      - {type: not_null, column: shipment_id}
+      - {type: no_future_date, column: ship_date}
+
+  returns:
+    source_path: "returns/"
+    schema:
+      - {name: return_invoice_id, type: string}
+      - {name: original_invoice_id, type: string}
+      - {name: stock_code, type: string}
+      - {name: quantity, type: integer}
+    business_key: ["return_invoice_id"]
+    scd_type: null
+    partition_by: null
+    dq_rules:
+      - {type: not_null, column: return_invoice_id}

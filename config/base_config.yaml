@@ -1,0 +1,16 @@
+spark:
+  app_name: "retail_lakehouse"
+  shuffle_partitions: 8
+  delta:
+    optimize_write: true
+
+paths:
+  landing_zone: "data/landing"
+  bronze: "data/bronze"
+  silver: "data/silver"
+  gold: "data/gold"
+  quarantine: "data/quarantine"
+
+data_quality:
+  fail_on_schema_mismatch: true
+  max_null_percentage_allowed: 5.0

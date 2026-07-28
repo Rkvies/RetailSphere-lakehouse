@@ -1,0 +1,18 @@
+spark:
+  shuffle_partitions: 4
+
+logging:
+  level: INFO
+
+paths:
+  landing_zone: "/Volumes/retail_lakehouse/lakehouse/landing"
+  bronze: "/Volumes/retail_lakehouse/lakehouse/lakehouse_data/bronze"
+  silver: "/Volumes/retail_lakehouse/lakehouse/lakehouse_data/silver"
+  gold: "/Volumes/retail_lakehouse/lakehouse/lakehouse_data/gold"
+  quarantine: "/Volumes/retail_lakehouse/lakehouse/lakehouse_data/quarantine"
+
+# If your workspace's UC catalog/schema/volume names differ from the
+# defaults created in notebooks/00_setup_unity_catalog.sql, update the
+# five paths above to match - everything else in the codebase reads
+# paths from HERE, not hardcoded strings, so this is the only place
+# that needs to change.
