@@ -5,25 +5,26 @@ logging:
   level: INFO
 
 paths:
-  landing_zone: "/Volumes/retail_lakehouse/lakehouse/landing"
+  landing_zone: "/Volumes/retail_lakehouse/landing/files"
   # bronze/silver/gold/quarantine paths below are ONLY used as a fallback
-  # if unity_catalog.enabled is set to false - with it true (default),
-  # resolve_table_ref() returns managed catalog table names instead
-  # (retail_lakehouse.lakehouse.bronze_sales, etc.) and these paths are
-  # never touched. Left populated in case you want to disable UC and
-  # fall back to Volume-path Delta tables for some reason.
-  bronze: "/Volumes/retail_lakehouse/lakehouse/landing/_fallback_bronze"
-  silver: "/Volumes/retail_lakehouse/lakehouse/landing/_fallback_silver"
-  gold: "/Volumes/retail_lakehouse/lakehouse/landing/_fallback_gold"
-  quarantine: "/Volumes/retail_lakehouse/lakehouse/landing/_fallback_quarantine"
+  # if unity_catalog.enabled is false. With it true (default), tables
+  # are resolved as catalog.schema.table names instead and these paths
+  # are never touched.
+  bronze: "/Volumes/retail_lakehouse/landing/files/_fallback_bronze"
+  silver: "/Volumes/retail_lakehouse/landing/files/_fallback_silver"
+  gold: "/Volumes/retail_lakehouse/landing/files/_fallback_gold"
+  quarantine: "/Volumes/retail_lakehouse/landing/files/_fallback_quarantine"
 
-# This is the fix for "Missing cloud file system scheme": Bronze/Silver/
-# Gold are created as MANAGED Unity Catalog tables (saveAsTable), not
-# path-based external tables under a Volume. Managed tables need no
-# LOCATION and no cloud storage credentials - UC handles storage itself.
-# Queryable as retail_lakehouse.lakehouse.bronze_sales /
-# silver_dim_customer / gold_fact_sales, etc.
+# Schema-per-layer: bronze.sales, silver.dim_customer, gold.fact_sales,
+# quarantine.sales, etc. - one catalog, one schema per medallion layer,
+# plain table names inside each. Every Bronze/Silver/Gold/Quarantine
+# write is a MANAGED Unity Catalog table (saveAsTable) - no LOCATION,
+# no cloud storage credentials needed.
 unity_catalog:
   enabled: true
   catalog: "retail_lakehouse"
-  schema: "lakehouse"
+  schemas:
+    bronze: "bronze"
+    silver: "silver"
+    gold: "gold"
+    quarantine: "quarantine"

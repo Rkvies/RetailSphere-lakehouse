@@ -74,28 +74,28 @@ def list_configured_tables() -> list[str]:
 
 def resolve_table_ref(layer: str, table_name: str) -> str:
     """
-    Returns the reference every read/write should target for this
-    layer/table: a filesystem PATH for "landing" (always - raw files
-    belong in a Volume/local folder, never a catalog table), or for
-    bronze/silver/gold either:
-      - a managed Unity Catalog table name ("catalog.schema.layer_table")
-        when unity_catalog.enabled=true, or
-      - a filesystem path (same as resolve_layer_path) otherwise (local dev)
+    Returns the reference every read/write should target: a filesystem
+    PATH for "landing" (always - raw files belong in a Volume/local
+    folder, never a catalog table), or for bronze/silver/gold/
+    quarantine either:
+      - a managed Unity Catalog table name
+        ("catalog.<layer_schema>.table_name") when unity_catalog.enabled
+        is true - e.g. "retail_lakehouse.silver.dim_customer" - or
+      - a filesystem path (same as resolve_layer_path) otherwise
+        (local dev, no metastore)
 
-    Why NOT a path-based external table under a Volume for bronze/silver/
-    gold: Unity Catalog tables require LOCATION to point at a registered
-    "External Location" backed by cloud storage credentials - a Volume
-    path doesn't have that, and CREATE TABLE ... LOCATION '/Volumes/...'
-    fails with "Missing cloud file system scheme". Managed tables
-    (saveAsTable, no LOCATION clause) sidestep this entirely - Unity
-    Catalog handles the underlying storage itself. This is also the
-    more idiomatic UC pattern, not just a workaround.
+    Schema-PER-LAYER (bronze/silver/gold/quarantine each their own
+    schema), not a single shared schema with layer-prefixed table
+    names - this is the idiomatic Unity Catalog pattern: Catalog
+    Explorer browses by schema, so "gold.fact_sales" reads naturally
+    and groups with every other Gold table, rather than everything
+    flattened into one schema disambiguated only by a name prefix.
 
-    delta_utils.py functions (merge_upsert, scd2_merge, _table_exists)
-    detect whether a given ref is a path or a catalog table name by
-    checking for "/" - every path in this project starts with "/" or
-    contains one; catalog names never do (three dot-separated
-    identifiers, e.g. "retail_lakehouse.lakehouse.bronze_sales").
+    table_name does NOT need to match a table_config.yaml key for the
+    "gold" layer specifically - Gold is a derived/aggregated layer
+    (e.g. gold_builder.py writes "dim_customer", "fact_sales",
+    "fact_returns" etc., which are business-facing names, not
+    necessarily 1:1 with Silver's per-domain table_config entries).
     """
     if layer == "landing":
         return resolve_layer_path(layer, table_name)
@@ -105,8 +105,8 @@ def resolve_table_ref(layer: str, table_name: str) -> str:
 
     if uc_config.get("enabled", False):
         catalog = uc_config["catalog"]
-        schema = uc_config["schema"]
-        return f"{catalog}.{schema}.{layer}_{table_name}"
+        schema = uc_config["schemas"][layer]
+        return f"{catalog}.{schema}.{table_name}"
 
     return resolve_layer_path(layer, table_name)
 
