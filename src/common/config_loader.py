@@ -76,11 +76,7 @@ def resolve_layer_path(layer: str, table_name: str) -> str:
     """
     Joins app_config's paths.<layer> with the table name (or, for
     landing, the table's configured source_path), so NO pipeline module
-    hardcodes 'data/bronze/...' strings - this is the fix for the path
-    drift that broke Bronze/Silver/Gold when moving from local to
-    Databricks/Unity Catalog.
-
-    layer: one of "landing", "bronze", "silver", "gold", "quarantine"
+    hardcodes 'data/bronze/...' strings.
     """
     app_config = load_app_config()
     path_key = "landing_zone" if layer == "landing" else layer
@@ -92,3 +88,30 @@ def resolve_layer_path(layer: str, table_name: str) -> str:
         return f"{base_path}/{relative}"
 
     return f"{base_path}/{table_name}"
+
+
+def resolve_catalog_table_name(layer: str, table_name: str) -> Optional[str]:
+    """
+    Returns the fully-qualified Unity Catalog table name
+    ('catalog.schema.<layer>_<table_name>') for a given layer/table, or
+    None if unity_catalog.enabled is false (e.g. local dev with no
+    metastore).
+
+    Naming convention: layer is prefixed onto the table name
+    (bronze_sales, silver_dim_customer, gold_fact_sales) because Bronze/
+    Silver/Gold versions of the same logical table would otherwise
+    collide in a single schema - three separate schemas (one per layer)
+    is the alternative, cleaner at larger scale, but a single
+    'lakehouse' schema with prefixed names is simpler to set up on
+    Community Edition and is what notebooks/00_setup_unity_catalog.sql
+    provisions by default.
+    """
+    app_config = load_app_config()
+    uc_config = app_config.get("unity_catalog", {})
+
+    if not uc_config.get("enabled", False):
+        return None
+
+    catalog = uc_config["catalog"]
+    schema = uc_config["schema"]
+    return f"{catalog}.{schema}.{layer}_{table_name}"

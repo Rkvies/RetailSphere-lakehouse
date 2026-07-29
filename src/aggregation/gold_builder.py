@@ -8,7 +8,8 @@ from __future__ import annotations
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
-from src.common.config_loader import resolve_layer_path
+from src.common.config_loader import resolve_layer_path, resolve_catalog_table_name
+from src.common.delta_utils import register_as_table
 from src.common.logger import get_logger, log_pipeline_event
 from src.common.spark_session import get_spark_session
 
@@ -83,6 +84,8 @@ def build_fact_sales_gold() -> dict[str, int]:
 
     zorder_cols = "customer_sk, product_sk"
     spark.sql(f"OPTIMIZE delta.`{gold_path}` ZORDER BY ({zorder_cols})")
+
+    register_as_table(spark, gold_path, resolve_catalog_table_name("gold", "fact_sales"))
 
     log_pipeline_event(logger, "gold_fact_sales_build_complete", row_count=row_count)
     return {"row_count": row_count}

@@ -1,0 +1,107 @@
+<?xml version="1.0" ?>
+<mxfile host="app.diagrams.net">
+  <diagram name="Low-Level Architecture" id="diagram1">
+    <mxGraphModel dx="800" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="b1" value="Read raw file" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="b2" value="Attach metadata
+(_source_file,
+_ingest_ts, _batch_id)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="200" y="40" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="b3" value="Schema validation
+(reject to quarantine)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="40" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="b4" value="Bronze Delta Table
+(partitioned by
+_ingest_date)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="560" y="40" width="160" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="s1" value="Read Bronze
+incremental" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="160" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s2" value="Deduplicate
+on business key" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="200" y="160" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3" value="Apply DQ rules" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="380" y="160" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s4" value="Fact: incremental
+merge / SCD1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="560" y="130" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s5" value="Dimension: SCD2
+merge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="560" y="190" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s6" value="Silver Delta Table" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="750" y="160" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="g1" value="Read Silver
+facts + dims" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="g2" value="Point-in-time join
+(dims + facts)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="200" y="280" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="g3" value="Build star schema" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="280" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="g4" value="Gold Delta Table
+(OPTIMIZE ZORDER)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="600" y="280" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="b1" target="b2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="b2" target="b3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="b3" target="b4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="b4" target="s1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="s1" target="s2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="s2" target="s3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e6" value="fact" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="s3" target="s4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7" value="dimension" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="s3" target="s5">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="s4" target="s6">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="s5" target="s6">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="s6" target="g1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="g1" target="g2">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="g2" target="g3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="g3" target="g4">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

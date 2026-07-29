@@ -9,5 +9,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src/ src/
 COPY config/ config/
 
-ENTRYPOINT ["python", "-m"]
-CMD ["src.pipelines.run_bronze_pipeline"]
+CMD ["python", "-m", "src.ingestion.data_generator"]

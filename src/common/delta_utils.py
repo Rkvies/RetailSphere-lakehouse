@@ -14,6 +14,27 @@ from src.common.logger import get_logger, log_pipeline_event
 logger = get_logger(__name__)
 
 
+def register_as_table(spark: SparkSession, table_path: str, catalog_table_name: str) -> None:
+    """
+    Registers a path-based Delta table as a named Unity Catalog table
+    (CREATE TABLE ... USING DELTA LOCATION), so it appears in Catalog
+    Explorer and is queryable as `catalog.schema.table` rather than
+    only visible as raw Delta/Parquet files under a Volume path.
+
+    This is idempotent (IF NOT EXISTS) and safe to call after every
+    write - it does NOT copy or move data, it just points a catalog
+    entry at the existing path. If catalog_table_name is None (e.g.
+    unity_catalog.enabled=false in config, as in local dev), this is a
+    silent no-op - callers don't need to branch on environment
+    themselves.
+    """
+    if catalog_table_name is None:
+        return
+
+    spark.sql(f"CREATE TABLE IF NOT EXISTS {catalog_table_name} USING DELTA LOCATION '{table_path}'")
+    log_pipeline_event(logger, "table_registered_in_catalog", table=catalog_table_name, path=table_path)
+
+
 def _table_exists(spark: SparkSession, table_path: str) -> bool:
     return DeltaTable.isDeltaTable(spark, table_path)
 

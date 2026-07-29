@@ -1,16 +1,7 @@
-"""
-tests/unit/test_bronze_loader.py
-"""
 import pytest
-from pyspark.sql import SparkSession
 
 from src.ingestion.bronze_loader import _build_schema, _tag_metadata
 from src.common.exception_handler import SchemaValidationError
-
-
-@pytest.fixture(scope="module")
-def spark():
-    return SparkSession.builder.appName("test_bronze_loader").master("local[2]").getOrCreate()
 
 
 def test_build_schema_creates_correct_struct_type():
@@ -43,7 +34,6 @@ def test_tag_metadata_adds_all_required_columns(spark):
 def test_tag_metadata_preserves_original_columns_and_data(spark):
     df = spark.createDataFrame([("INV001", 5)], ["invoice_id", "quantity"])
     tagged = _tag_metadata(df, source_path="x", batch_id="y")
-
     row = tagged.collect()[0]
     assert row["invoice_id"] == "INV001"
     assert row["quantity"] == 5

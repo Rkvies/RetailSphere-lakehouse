@@ -1,0 +1,80 @@
+<?xml version="1.0" ?>
+<mxfile host="app.diagrams.net">
+  <diagram name="Star Schema ERD" id="diagram1">
+    <mxGraphModel dx="800" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="dim_cust" value="dim_customer
+(SCD2)
+customer_sk PK
+customer_id
+country, segment
+is_current" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="180" width="180" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="dim_prod" value="dim_product
+(SCD2)
+product_sk PK
+stock_code
+unit_price
+is_current" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="180" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="dim_store" value="dim_store
+(SCD1)
+store_sk PK
+store_id, region" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="320" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="fact_sales" value="fact_sales
+invoice_id
+customer_sk FK
+product_sk FK
+store_sk FK
+sale_date
+quantity, line_total" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="320" y="160" width="200" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="dim_date" value="dim_date
+date_sk PK
+full_date, year, month" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="320" y="40" width="180" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="fact_ret" value="fact_returns
+return_invoice_id
+original_invoice_id FK
+product_sk FK" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="620" y="100" width="190" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="fact_inv" value="fact_inventory_snapshot
+store_sk FK, product_sk FK
+snapshot_date
+stock_on_hand" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="620" y="220" width="210" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="e0" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="dim_cust" target="fact_sales">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="dim_prod" target="fact_sales">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="dim_store" target="fact_sales">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="dim_date" target="fact_sales">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="fact_sales" target="fact_ret">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="dim_store" target="fact_inv">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e6" value="1:N" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="dim_prod" target="fact_inv">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

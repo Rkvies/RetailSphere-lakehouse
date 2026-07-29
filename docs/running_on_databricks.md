@@ -1,69 +1,62 @@
-# Running on Databricks — Step by Step
+# Running on Databricks — Complete Guide
 
-## Step 0 — Confirm the setup
+## Step 0 — Prerequisites
 
-1. **Repos:** Workspace → Repos → confirm your GitHub repo is checked out (you said this is done)
-2. **Cluster:** Create/attach a cluster on a recent LTS runtime (e.g. 15.4 LTS) — Delta Lake is pre-installed, you do **not** need to `pip install delta-spark`
-3. **Verify the code is importable:** open (or create) a notebook **inside the repo folder** in Repos — notebooks placed inside the repo can import `src...` modules directly once the repo root is on `sys.path` (Step 1 below)
+- Repo already synced via Databricks Repos
+- A cluster attached, recent LTS runtime (15.4 LTS or similar) — Delta is pre-installed
+- Unity Catalog available (check for the **Catalog** icon in the left sidebar). If missing, see the "No Unity Catalog" fallback near the end.
 
-## Step 1 — First cell of every notebook: path setup
+## Step 1 — One-time Unity Catalog setup
+
+Run once, in a SQL cell (`%sql`) or the SQL editor:
+
+```sql
+SHOW CATALOGS;
+
+CREATE CATALOG IF NOT EXISTS retail_lakehouse;
+USE CATALOG retail_lakehouse;
+
+CREATE SCHEMA IF NOT EXISTS lakehouse;
+USE SCHEMA lakehouse;
+
+CREATE VOLUME IF NOT EXISTS landing;
+CREATE VOLUME IF NOT EXISTS lakehouse_data;
+
+LIST '/Volumes/retail_lakehouse/lakehouse/landing';
+```
+
+**If `CREATE CATALOG` fails with a permission error**: run `SHOW CATALOGS;` / `SHOW SCHEMAS;` to find one you already have write access to, then update `config/databricks_config.yaml`'s five `paths.*` values to point there, and create the two volumes under that schema instead.
+
+## Step 2 — First cell of your run notebook
 
 ```python
 import sys, os
 
-# If this notebook lives inside the repo (recommended), this resolves
-# the repo root automatically. Otherwise, replace with the path shown
-# under Repos > your repo > "Copy path" in the workspace UI.
 repo_root = os.path.dirname(os.getcwd())
 if repo_root not in sys.path:
     sys.path.append(repo_root)
 
-print("sys.path includes:", repo_root)
-```
-
-**If your `src` modules still don't import after this:** your notebook is probably one level deeper/shallower than expected. Run `%pwd` in a cell and manually set `repo_root` to the folder that directly contains `src/`, `config/`, etc.
-
-## Step 2 — Storage: Unity Catalog Volumes (Community Edition has no DBFS root access)
-
-1. Confirm Unity Catalog is available: check for the **Catalog** icon in the left sidebar. If it's missing, UC isn't enabled on your workspace — skip to the "No Unity Catalog?" fallback at the bottom.
-2. Run `notebooks/00_setup_unity_catalog.sql` once (SQL editor or a `%sql` cell) to create the catalog/schema/volumes. **If `CREATE CATALOG` fails with a permissions error**, your CE account likely can't create catalogs — instead find whatever default catalog/schema `SHOW CATALOGS;` / `SHOW SCHEMAS;` already gives you write access to, and update `config/databricks_config.yaml`'s five paths to point under that instead.
-3. Set the environment variable at the top of your run notebook:
-```python
-import os
 os.environ["ENV"] = "databricks"
-```
-This makes `config_loader.py` merge `config/databricks_config.yaml` on top of `config/base_config.yaml` — every path (`landing_zone`, `bronze`, `silver`, `gold`, `quarantine`) now resolves under `/Volumes/...` automatically. **No other file needs manual path edits** — `resolve_layer_path()` in `config_loader.py` is the single place every pipeline module gets its paths from now.
 
-### No Unity Catalog available at all?
-Fall back to **Workspace Files** (not DBFS root, not UC — a third option, always available even on restricted CE):
-```yaml
-# config/databricks_config.yaml, paths section, replacing the /Volumes/... values:
-paths:
-  landing_zone: "/Workspace/Shared/retail_lakehouse/landing"
-  bronze: "/Workspace/Shared/retail_lakehouse/bronze"
-  silver: "/Workspace/Shared/retail_lakehouse/silver"
-  gold: "/Workspace/Shared/retail_lakehouse/gold"
-  quarantine: "/Workspace/Shared/retail_lakehouse/quarantine"
+print("Repo root:", repo_root)
+print("ENV:", os.environ["ENV"])
 ```
-Workspace Files have lower size/performance ceilings than Volumes and aren't meant for large-scale data (fine for this portfolio-scale demo). Create the folder first: `dbutils.fs.mkdirs("file:/Workspace/Shared/retail_lakehouse/landing")` or via the Workspace UI.
+
+If imports still fail, run `%pwd` and manually set `repo_root` to the folder that directly contains `src/`, `config/`, etc.
 
 ## Step 3 — Generate landing zone data
 
 ```python
-os.environ["ENV"] = "databricks"   # must be set before this import resolves paths
 from src.ingestion.data_generator import main as generate_data
 generate_data()
 ```
-Verify:
-```python
-dbutils.fs.ls("/Volumes/retail_lakehouse/lakehouse/landing/sales/")
-```
+Verify: `dbutils.fs.ls("/Volumes/retail_lakehouse/lakehouse/landing/sales/")`
 
 ## Step 4 — Run Bronze
 
 ```python
 from src.pipelines.run_bronze_pipeline import main as run_bronze
-run_bronze()
+print(run_bronze())
 ```
 Verify:
 ```python
@@ -75,7 +68,7 @@ display(spark.read.format("delta").load(resolve_layer_path("bronze", "sales")))
 
 ```python
 from src.pipelines.run_silver_pipeline import main as run_silver
-run_silver()
+print(run_silver())
 ```
 Verify:
 ```python
@@ -86,30 +79,93 @@ display(spark.read.format("delta").load(resolve_layer_path("silver", "customer")
 
 ```python
 from src.pipelines.run_gold_pipeline import main as run_gold
-run_gold()
+print(run_gold())
 ```
-Verify:
+Verify (the real payoff — proves the point-in-time join worked):
 ```python
 display(
     spark.read.format("delta").load(resolve_layer_path("gold", "fact_sales"))
     .groupBy("customer_sk").sum("line_total")
     .orderBy("sum(line_total)", ascending=False)
+    .limit(10)
 )
 ```
 
-## Step 7 — Orchestration on Databricks (instead of Airflow)
+**You can now also query it as a real catalog table**, not just by path — every write registers itself in Unity Catalog automatically:
+```sql
+%sql
+SHOW TABLES IN retail_lakehouse.lakehouse;
+SELECT * FROM retail_lakehouse.lakehouse.gold_fact_sales LIMIT 10;
+```
+If you ran the pipeline *before* this registration fix and only see raw Parquet/Delta files in Catalog Explorer (not table objects), run `notebooks/register_existing_tables.py` once to catch up your existing data — it registers what's already there without re-running Bronze/Silver/Gold.
 
-Airflow isn't available inside Databricks notebooks. Two reasonable options, worth naming both if asked in an interview:
+## Full One-Cell Run (quick end-to-end demo)
 
-**Option A — Databricks Workflows (recommended, idiomatic):** Workflows → Create Job → add three tasks (Bronze, Silver, Gold) each pointing at the relevant notebook/script, wire Silver to depend on Bronze and Gold to depend on Silver via the UI's task dependency graph. This is Databricks' native equivalent of what our Airflow DAG expressed in code.
+```python
+import sys, os
+repo_root = os.path.dirname(os.getcwd())
+if repo_root not in sys.path:
+    sys.path.append(repo_root)
+os.environ["ENV"] = "databricks"
 
-**Option B — Keep the Airflow DAG concept, but note it needs separate infrastructure:** the DAG file (`dags/retail_lakehouse_dag.py`) was designed to run in an Airflow environment (local, MWAA, Cloud Composer) that calls out to Databricks Jobs remotely — not inside a Databricks notebook itself. If your goal is "prove Airflow orchestration works" for the portfolio, run it locally per `RUNNING.md`'s Step 9, separate from this Databricks run.
+from src.ingestion.data_generator import main as generate_data
+from src.pipelines.run_bronze_pipeline import main as run_bronze
+from src.pipelines.run_silver_pipeline import main as run_silver
+from src.pipelines.run_gold_pipeline import main as run_gold
+from src.common.config_loader import resolve_layer_path
 
-## Common Databricks-Specific Errors
+print("Generating data..."); generate_data()
+print("Bronze:", run_bronze())
+print("Silver:", run_silver())
+print("Gold:", run_gold())
+
+display(
+    spark.read.format("delta").load(resolve_layer_path("gold", "fact_sales"))
+    .groupBy("customer_sk").sum("line_total")
+    .orderBy("sum(line_total)", ascending=False)
+    .limit(10)
+)
+```
+
+## Running Tests on Databricks
+
+```python
+%pip install pytest pytest-cov
+```
+```python
+import subprocess
+result = subprocess.run(
+    ["pytest", f"{repo_root}/tests/unit/", "-v", "--tb=short"],
+    capture_output=True, text=True, cwd=repo_root,
+)
+print(result.stdout[-4000:])
+```
+
+## No Unity Catalog available?
+
+Fall back to Workspace Files:
+```yaml
+# config/databricks_config.yaml
+paths:
+  landing_zone: "/Workspace/Shared/retail_lakehouse/landing"
+  bronze: "/Workspace/Shared/retail_lakehouse/bronze"
+  silver: "/Workspace/Shared/retail_lakehouse/silver"
+  gold: "/Workspace/Shared/retail_lakehouse/gold"
+  quarantine: "/Workspace/Shared/retail_lakehouse/quarantine"
+```
+```python
+dbutils.fs.mkdirs("file:/Workspace/Shared/retail_lakehouse/landing")
+```
+
+## Common Errors
 
 | Error | Cause | Fix |
 |---|---|---|
-| `ModuleNotFoundError: No module named 'src'` | Repo root not on `sys.path` | Re-run Step 1's path-setup cell |
-| `AnalysisException: Path does not exist` | Using local-style paths (`data/bronze/...`) instead of DBFS paths | Apply Step 2's config changes |
-| Silver/Gold shows 0 rows despite Bronze succeeding | Watermark logic reading from the wrong (local-style) Silver path while Bronze wrote to the DBFS path, or vice versa — a path-mismatch, not a logic bug | Confirm every layer uses the SAME `ENV=databricks` config consistently |
-| `PicklingError` or similar from `_deduplicate_within_batch`/UDFs | Rare — usually from stale cluster state after repeated `%run` of changed code | Detach and reattach the notebook to the cluster to clear cached state |
+| `ModuleNotFoundError: No module named 'src'` | Repo root not on `sys.path` | Re-run Step 2 |
+| `AnalysisException: Path does not exist` | `ENV` not set before imports, or catalog/schema/volume not created | Re-run Step 1, confirm Step 2's `os.environ["ENV"]` ran first |
+| Silver/Gold shows 0 rows despite Bronze succeeding | Mixed environment state across cells | Clear State, re-run from Step 2 |
+| `PicklingError` after repeated edits | Stale cluster state | Detach/reattach notebook to cluster |
+
+## Orchestration
+
+See [`databricks_job_scheduling_guide.md`](databricks_job_scheduling_guide.md) for turning this into a scheduled Databricks Job.

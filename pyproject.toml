@@ -1,0 +1,23 @@
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.venv
+  | data
+  | airflow_home
+  | \.git
+)/
+'''
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[project]
+name = "enterprise-retail-lakehouse"
+version = "0.1.0"
+description = "Enterprise Retail Lakehouse Platform - Medallion Architecture on PySpark and Delta Lake"
+requires-python = ">=3.10"

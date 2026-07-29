@@ -1,0 +1,54 @@
+<?xml version="1.0" ?>
+<mxfile host="app.diagrams.net">
+  <diagram name="Deployment Mapping (Free Tier -&gt; Production)" id="diagram1">
+    <mxGraphModel dx="800" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="vscode" value="VS Code /
+Local Dev" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="dbce" value="Databricks
+Community Edition" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="120" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="gh" value="GitHub Repo" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="200" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="ga" value="GitHub Actions
+(CI)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="280" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="s3" value="S3 / ADLS
+Data Lake" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="40" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="emr" value="EMR / Databricks
+Job Clusters" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="120" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="mwaa" value="Managed Airflow
+(MWAA)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="200" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="cicd" value="Jenkins / GitHub
+Actions CI-CD" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="280" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e0" value="maps to" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="vscode" target="s3">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" value="maps to" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="dbce" target="emr">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="maps to" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="gh" target="mwaa">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="maps to" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="ga" target="cicd">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

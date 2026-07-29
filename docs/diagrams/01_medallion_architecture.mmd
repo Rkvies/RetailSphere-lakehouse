@@ -1,0 +1,16 @@
+flowchart LR
+    subgraph Sources["Source Systems"]
+        S1[Customer/Product/Sales/etc.]
+    end
+    subgraph Bronze["BRONZE - Raw Layer"]
+        B1["Raw ingestion\nSchema-on-read\nAppend-only\n+ metadata columns"]
+    end
+    subgraph Silver["SILVER - Cleansed Layer"]
+        SI1["Deduplication\nData quality rules\nSCD Type 2\nConformed schema"]
+    end
+    subgraph Gold["GOLD - Curated Layer"]
+        G1["Business aggregates\nFact & Dimension tables\nAnalytics/ML-ready"]
+    end
+    Sources --> Bronze --> Silver --> Gold
+    Gold --> BI[BI Tools / Power BI]
+    Gold --> ML[ML Notebooks]

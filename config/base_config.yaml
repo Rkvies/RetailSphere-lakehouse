@@ -14,3 +14,11 @@ paths:
 data_quality:
   fail_on_schema_mismatch: true
   max_null_percentage_allowed: 5.0
+
+# Registers every Delta write as a real Unity Catalog table (catalog.schema.table)
+# so it appears in Catalog Explorer and is queryable by name, not just by path.
+# Disabled by default - local dev has no catalog/metastore to register against.
+unity_catalog:
+  enabled: false
+  catalog: null
+  schema: null

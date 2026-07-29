@@ -9,9 +9,9 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-from src.common.config_loader import load_table_config, resolve_layer_path
+from src.common.config_loader import load_table_config, resolve_layer_path, resolve_catalog_table_name
 from src.common.data_quality import validate
-from src.common.delta_utils import merge_upsert, _table_exists
+from src.common.delta_utils import merge_upsert, register_as_table, _table_exists
 from src.common.logger import get_logger, log_pipeline_event
 from src.common.spark_session import get_spark_session
 
@@ -74,6 +74,7 @@ def process_fact_table(table_name: str) -> dict[str, int]:
         result.invalid_df.write.format("delta").mode("append").save(quarantine_path)
 
     merge_upsert(spark, result.valid_df, silver_path, business_key=business_key)
+    register_as_table(spark, silver_path, resolve_catalog_table_name("silver", table_name))
 
     log_pipeline_event(
         logger, "silver_fact_processing_complete", table=table_name,

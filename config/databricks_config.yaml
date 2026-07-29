@@ -11,8 +11,12 @@ paths:
   gold: "/Volumes/retail_lakehouse/lakehouse/lakehouse_data/gold"
   quarantine: "/Volumes/retail_lakehouse/lakehouse/lakehouse_data/quarantine"
 
-# If your workspace's UC catalog/schema/volume names differ from the
-# defaults created in notebooks/00_setup_unity_catalog.sql, update the
-# five paths above to match - everything else in the codebase reads
-# paths from HERE, not hardcoded strings, so this is the only place
-# that needs to change.
+# This is the fix: every Bronze/Silver/Gold write also gets registered as
+# a real Unity Catalog table via `CREATE TABLE ... USING DELTA LOCATION`,
+# so it shows up in Catalog Explorer and is queryable as
+# retail_lakehouse.lakehouse.bronze_sales / silver_dim_customer / gold_fact_sales
+# etc. - not just visible as raw Parquet+_delta_log files in a Volume.
+unity_catalog:
+  enabled: true
+  catalog: "retail_lakehouse"
+  schema: "lakehouse"

@@ -1,0 +1,30 @@
+erDiagram
+  DIM_CUSTOMER ||--o{ FACT_SALES : places
+  DIM_PRODUCT ||--o{ FACT_SALES : contains
+  DIM_STORE ||--o{ FACT_SALES : sold_at
+  DIM_DATE ||--o{ FACT_SALES : occurred_on
+  FACT_SALES ||--o{ FACT_RETURNS : reversed_by
+  DIM_STORE ||--o{ FACT_INVENTORY_SNAPSHOT : stocks
+  DIM_PRODUCT ||--o{ FACT_INVENTORY_SNAPSHOT : tracked_in
+
+  DIM_CUSTOMER {
+    int customer_sk PK
+    string customer_id
+    string country
+    boolean is_current
+  }
+  DIM_PRODUCT {
+    int product_sk PK
+    string stock_code
+    decimal unit_price
+    boolean is_current
+  }
+  FACT_SALES {
+    string invoice_id
+    int customer_sk FK
+    int product_sk FK
+    int store_sk FK
+    date sale_date
+    int quantity
+    decimal line_total
+  }

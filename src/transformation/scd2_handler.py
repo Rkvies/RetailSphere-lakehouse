@@ -8,9 +8,9 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-from src.common.config_loader import load_table_config, resolve_layer_path
+from src.common.config_loader import load_table_config, resolve_layer_path, resolve_catalog_table_name
 from src.common.data_quality import validate
-from src.common.delta_utils import scd2_merge
+from src.common.delta_utils import scd2_merge, register_as_table
 from src.common.logger import get_logger, log_pipeline_event
 from src.common.spark_session import get_spark_session
 from src.transformation.silver_processor import _read_incremental_bronze
@@ -63,6 +63,7 @@ def process_dimension_table(table_name: str) -> dict[str, int]:
         business_key=business_key, tracked_columns=tracked_columns,
         surrogate_key_col=surrogate_key_col,
     )
+    register_as_table(spark, silver_path, resolve_catalog_table_name("silver", table_name))
 
     log_pipeline_event(
         logger, "silver_dimension_processing_complete", table=table_name,

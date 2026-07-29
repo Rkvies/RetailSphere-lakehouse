@@ -1,0 +1,67 @@
+<?xml version="1.0" ?>
+<mxfile host="app.diagrams.net">
+  <diagram name="Pipeline Run Flow" id="diagram1">
+    <mxGraphModel dx="800" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="trig" value="Airflow: trigger
+run_date" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="read" value="Bronze: read
+raw file" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="220" y="40" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="val" value="Data Quality:
+validate schema" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="400" y="40" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="pass" value="Valid rows -&gt;
+write to Bronze" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="600" y="0" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="fail" value="Invalid rows -&gt;
+write to Quarantine" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="600" y="90" width="170" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="logok" value="Log: success
+(row_count)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="800" y="0" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="logwarn" value="Log: warning
+(rejected_count)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="800" y="90" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="done" value="Report status
+to Airflow" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="40" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="trig" target="read">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="read" target="val">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="valid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="val" target="pass">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="invalid" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="val" target="fail">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="pass" target="logok">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="fail" target="logwarn">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="logok" target="done">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="logwarn" target="done">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

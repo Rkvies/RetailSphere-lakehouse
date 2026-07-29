@@ -1,12 +1,10 @@
-"""
-tests/unit/test_config_loader.py
-"""
 import pytest
 
 from src.common.config_loader import (
     _deep_merge,
     ConfigError,
     load_table_config,
+    resolve_layer_path,
 )
 
 
@@ -16,14 +14,9 @@ def test_deep_merge_preserves_untouched_nested_keys():
         "paths": {"bronze": "data/bronze"},
     }
     override = {"spark": {"shuffle_partitions": 4}}
-
     result = _deep_merge(base, override)
-
-    # Overridden key changed...
     assert result["spark"]["shuffle_partitions"] == 4
-    # ...but sibling nested key survived (this is the bug a shallow merge causes)
     assert result["spark"]["app_name"] == "retail"
-    # ...and untouched top-level key survived
     assert result["paths"]["bronze"] == "data/bronze"
 
 
@@ -36,17 +29,10 @@ def test_deep_merge_adds_new_top_level_keys():
 
 
 def test_load_table_config_returns_expected_keys(tmp_path, monkeypatch):
-    # Point CONFIG_DIR at a temp fixture directory so this test doesn't
-    # depend on the real project's config/ files - keeps unit tests
-    # isolated and fast, per NFR-08 (testability).
     import src.common.config_loader as config_loader_module
 
-    fixture_config = tmp_path / "table_config.yaml"
-    fixture_config.write_text(
-        "tables:\n"
-        "  sales:\n"
-        "    business_key: ['invoice_id']\n"
-        "    scd_type: null\n"
+    (tmp_path / "table_config.yaml").write_text(
+        "tables:\n  sales:\n    business_key: ['invoice_id']\n    scd_type: null\n"
     )
     monkeypatch.setattr(config_loader_module, "CONFIG_DIR", tmp_path)
 
@@ -58,9 +44,43 @@ def test_load_table_config_returns_expected_keys(tmp_path, monkeypatch):
 def test_load_table_config_raises_for_unknown_table(tmp_path, monkeypatch):
     import src.common.config_loader as config_loader_module
 
-    fixture_config = tmp_path / "table_config.yaml"
-    fixture_config.write_text("tables:\n  sales:\n    business_key: ['invoice_id']\n")
+    (tmp_path / "table_config.yaml").write_text("tables:\n  sales:\n    business_key: ['invoice_id']\n")
     monkeypatch.setattr(config_loader_module, "CONFIG_DIR", tmp_path)
 
     with pytest.raises(ConfigError, match="No configuration found for table 'unknown_table'"):
         load_table_config("unknown_table")
+
+
+def test_resolve_layer_path_joins_base_and_table_name(tmp_path, monkeypatch):
+    import src.common.config_loader as config_loader_module
+
+    (tmp_path / "base_config.yaml").write_text(
+        "paths:\n  landing_zone: 'data/landing'\n  bronze: 'data/bronze'\n"
+    )
+    (tmp_path / "table_config.yaml").write_text(
+        "tables:\n  sales:\n    source_path: 'sales/'\n"
+    )
+    monkeypatch.setattr(config_loader_module, "CONFIG_DIR", tmp_path)
+    monkeypatch.delenv("ENV", raising=False)
+    monkeypatch.delenv("DATABRICKS_RUNTIME_VERSION", raising=False)
+
+    assert resolve_layer_path("bronze", "sales") == "data/bronze/sales"
+    assert resolve_layer_path("landing", "sales") == "data/landing/sales"
+
+
+def test_resolve_layer_path_switches_environment_via_env_var(tmp_path, monkeypatch):
+    import src.common.config_loader as config_loader_module
+
+    (tmp_path / "base_config.yaml").write_text(
+        "paths:\n  landing_zone: 'data/landing'\n  bronze: 'data/bronze'\n"
+    )
+    (tmp_path / "databricks_config.yaml").write_text(
+        "paths:\n  bronze: '/Volumes/cat/schema/vol/bronze'\n"
+    )
+    (tmp_path / "table_config.yaml").write_text(
+        "tables:\n  sales:\n    source_path: 'sales/'\n"
+    )
+    monkeypatch.setattr(config_loader_module, "CONFIG_DIR", tmp_path)
+    monkeypatch.setenv("ENV", "databricks")
+
+    assert resolve_layer_path("bronze", "sales") == "/Volumes/cat/schema/vol/bronze/sales"

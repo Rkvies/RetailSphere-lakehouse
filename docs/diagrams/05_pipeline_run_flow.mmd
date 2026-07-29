@@ -1,0 +1,20 @@
+sequenceDiagram
+    participant Airflow
+    participant BronzeJob
+    participant Logger
+    participant DQModule
+    participant DeltaLake
+    Airflow->>BronzeJob: trigger(run_date)
+    BronzeJob->>Logger: log_start(job_id)
+    BronzeJob->>DeltaLake: read raw file
+    BronzeJob->>DQModule: validate_schema(df)
+    alt validation passes
+        DQModule-->>BronzeJob: valid_df
+        BronzeJob->>DeltaLake: write to Bronze (append)
+        BronzeJob->>Logger: log_success(row_count)
+    else validation fails
+        DQModule-->>BronzeJob: invalid_rows
+        BronzeJob->>DeltaLake: write to Quarantine
+        BronzeJob->>Logger: log_warning(rejected_count)
+    end
+    BronzeJob-->>Airflow: job_status

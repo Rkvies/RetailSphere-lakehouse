@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<mxfile host="app.diagrams.net">
+  <diagram name="Medallion Architecture" id="diagram1">
+    <mxGraphModel dx="800" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="src" value="Source Systems
+(Customer, Product,
+Sales, etc.)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="140" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="bronze" value="BRONZE
+Raw, append-only
++ metadata" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="140" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="silver" value="SILVER
+Deduplicated, validated
+SCD Type 2" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="480" y="140" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="gold" value="GOLD
+Star schema
+Analytics/ML-ready" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="700" y="140" width="160" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="bi" value="BI Tools /
+Power BI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="920" y="80" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="ml" value="ML Notebooks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="920" y="200" width="140" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="e0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="src" target="bronze">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="bronze" target="silver">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="silver" target="gold">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="gold" target="bi">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="gold" target="ml">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

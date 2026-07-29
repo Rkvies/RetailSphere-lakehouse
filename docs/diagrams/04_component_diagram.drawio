@@ -1,0 +1,87 @@
+<?xml version="1.0" ?>
+<mxfile host="app.diagrams.net">
+  <diagram name="Component Diagram" id="diagram1">
+    <mxGraphModel dx="800" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="cfg1" value="table_config.yaml" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="cfg2" value="env_config.yaml" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="110" width="160" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="log" value="Logger Module" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="40" width="150" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="dq" value="Data Quality Module" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="100" width="150" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="exc" value="Exception Handler" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="160" width="150" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="util" value="Delta Utils" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="220" width="150" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="brz" value="bronze_loader.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="480" y="60" width="150" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="slv" value="silver_processor.py
+scd2_handler.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="480" y="130" width="150" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="gld" value="gold_builder.py" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="480" y="210" width="150" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="dag" value="Airflow DAG" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="680" y="130" width="150" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="e0" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="cfg1" target="brz">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="cfg1" target="slv">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="cfg1" target="gld">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="cfg2" target="brz">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="log" target="brz">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="log" target="slv">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="log" target="gld">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="dq" target="brz">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e8" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="dq" target="slv">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="exc" target="brz">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="util" target="slv">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="util" target="gld">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e12" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="dag" target="brz">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="dag" target="slv">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="dag" target="gld">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
