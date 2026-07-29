@@ -9,22 +9,22 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-from src.common.config_loader import load_table_config, resolve_layer_path, resolve_catalog_table_name
+from src.common.config_loader import load_table_config, resolve_table_ref
 from src.common.data_quality import validate
-from src.common.delta_utils import merge_upsert, register_as_table, _table_exists
+from src.common.delta_utils import merge_upsert, _table_exists, _read_delta, _write_delta
 from src.common.logger import get_logger, log_pipeline_event
 from src.common.spark_session import get_spark_session
 
 logger = get_logger(__name__)
 
 
-def _read_incremental_bronze(spark: SparkSession, bronze_path: str, silver_path: str) -> DataFrame:
-    bronze_df = spark.read.format("delta").load(bronze_path)
+def _read_incremental_bronze(spark: SparkSession, bronze_ref: str, silver_ref: str) -> DataFrame:
+    bronze_df = _read_delta(spark, bronze_ref)
 
-    if not _table_exists(spark, silver_path):
+    if not _table_exists(spark, silver_ref):
         return bronze_df
 
-    silver_df = spark.read.format("delta").load(silver_path)
+    silver_df = _read_delta(spark, silver_ref)
     max_processed_date = silver_df.agg(F.max("_ingest_date")).collect()[0][0]
 
     if max_processed_date is None:
@@ -50,13 +50,13 @@ def process_fact_table(table_name: str) -> dict[str, int]:
         )
 
     spark = get_spark_session()
-    bronze_path = resolve_layer_path("bronze", table_name)
-    silver_path = resolve_layer_path("silver", table_name)
+    bronze_ref = resolve_table_ref("bronze", table_name)
+    silver_ref = resolve_table_ref("silver", table_name)
     business_key = table_conf["business_key"]
 
     log_pipeline_event(logger, "silver_fact_processing_started", table=table_name)
 
-    incremental_df = _read_incremental_bronze(spark, bronze_path, silver_path)
+    incremental_df = _read_incremental_bronze(spark, bronze_ref, silver_ref)
     incremental_count = incremental_df.count()
 
     if incremental_count == 0:
@@ -70,11 +70,10 @@ def process_fact_table(table_name: str) -> dict[str, int]:
     result = validate(deduplicated_df, dq_rules=dq_rules, table_name=f"{table_name}_silver")
 
     if result.invalid_count > 0:
-        quarantine_path = resolve_layer_path("quarantine", f"{table_name}_silver")
-        result.invalid_df.write.format("delta").mode("append").save(quarantine_path)
+        quarantine_ref = resolve_table_ref("quarantine", f"{table_name}_silver")
+        _write_delta(result.invalid_df, quarantine_ref, mode="append")
 
-    merge_upsert(spark, result.valid_df, silver_path, business_key=business_key)
-    register_as_table(spark, silver_path, resolve_catalog_table_name("silver", table_name))
+    merge_upsert(spark, result.valid_df, silver_ref, business_key=business_key)
 
     log_pipeline_event(
         logger, "silver_fact_processing_complete", table=table_name,

@@ -1,7 +1,5 @@
 -- Run once, in a SQL notebook cell or the SQL editor, before the first
--- pipeline run. Community Edition UC workspaces typically pre-provision
--- a default catalog (often named after your workspace or "workspace") -
--- adjust CATALOG_NAME below to whatever `SHOW CATALOGS` returns for you.
+-- pipeline run.
 
 SHOW CATALOGS;
 
@@ -11,13 +9,17 @@ USE CATALOG retail_lakehouse;
 CREATE SCHEMA IF NOT EXISTS lakehouse;
 USE SCHEMA lakehouse;
 
--- One volume for raw landing files, one for the Delta tables themselves.
--- (Delta tables COULD also be registered as managed UC tables rather
--- than path-based Delta - see the note in running_on_databricks.md
--- about that alternative and why we're sticking with path-based here
--- for consistency with the rest of the project's design.)
+-- Only the LANDING zone needs a Volume - raw files are unstructured
+-- input, which is exactly what Volumes are for. Bronze/Silver/Gold are
+-- created as MANAGED tables directly by the pipeline (saveAsTable) -
+-- Unity Catalog handles their storage itself, no Volume or explicit
+-- LOCATION needed. (An earlier version of this project tried to put
+-- Bronze/Silver/Gold under a second Volume with CREATE TABLE ...
+-- LOCATION - this fails with "Missing cloud file system scheme"
+-- because table LOCATIONs require a registered External Location with
+-- cloud storage credentials, which a Volume path doesn't have. Managed
+-- tables sidestep this entirely and are the more idiomatic UC pattern.)
 CREATE VOLUME IF NOT EXISTS landing;
-CREATE VOLUME IF NOT EXISTS lakehouse_data;
 
 -- Verify:
 LIST '/Volumes/retail_lakehouse/lakehouse/landing';

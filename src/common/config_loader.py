@@ -72,11 +72,51 @@ def list_configured_tables() -> list[str]:
     return list(all_tables.keys())
 
 
+def resolve_table_ref(layer: str, table_name: str) -> str:
+    """
+    Returns the reference every read/write should target for this
+    layer/table: a filesystem PATH for "landing" (always - raw files
+    belong in a Volume/local folder, never a catalog table), or for
+    bronze/silver/gold either:
+      - a managed Unity Catalog table name ("catalog.schema.layer_table")
+        when unity_catalog.enabled=true, or
+      - a filesystem path (same as resolve_layer_path) otherwise (local dev)
+
+    Why NOT a path-based external table under a Volume for bronze/silver/
+    gold: Unity Catalog tables require LOCATION to point at a registered
+    "External Location" backed by cloud storage credentials - a Volume
+    path doesn't have that, and CREATE TABLE ... LOCATION '/Volumes/...'
+    fails with "Missing cloud file system scheme". Managed tables
+    (saveAsTable, no LOCATION clause) sidestep this entirely - Unity
+    Catalog handles the underlying storage itself. This is also the
+    more idiomatic UC pattern, not just a workaround.
+
+    delta_utils.py functions (merge_upsert, scd2_merge, _table_exists)
+    detect whether a given ref is a path or a catalog table name by
+    checking for "/" - every path in this project starts with "/" or
+    contains one; catalog names never do (three dot-separated
+    identifiers, e.g. "retail_lakehouse.lakehouse.bronze_sales").
+    """
+    if layer == "landing":
+        return resolve_layer_path(layer, table_name)
+
+    app_config = load_app_config()
+    uc_config = app_config.get("unity_catalog", {})
+
+    if uc_config.get("enabled", False):
+        catalog = uc_config["catalog"]
+        schema = uc_config["schema"]
+        return f"{catalog}.{schema}.{layer}_{table_name}"
+
+    return resolve_layer_path(layer, table_name)
+
+
 def resolve_layer_path(layer: str, table_name: str) -> str:
     """
     Joins app_config's paths.<layer> with the table name (or, for
-    landing, the table's configured source_path), so NO pipeline module
-    hardcodes 'data/bronze/...' strings.
+    landing, the table's configured source_path). Used directly for
+    landing zone paths always, and as the fallback for bronze/silver/
+    gold when Unity Catalog isn't enabled (local dev).
     """
     app_config = load_app_config()
     path_key = "landing_zone" if layer == "landing" else layer
@@ -88,30 +128,3 @@ def resolve_layer_path(layer: str, table_name: str) -> str:
         return f"{base_path}/{relative}"
 
     return f"{base_path}/{table_name}"
-
-
-def resolve_catalog_table_name(layer: str, table_name: str) -> Optional[str]:
-    """
-    Returns the fully-qualified Unity Catalog table name
-    ('catalog.schema.<layer>_<table_name>') for a given layer/table, or
-    None if unity_catalog.enabled is false (e.g. local dev with no
-    metastore).
-
-    Naming convention: layer is prefixed onto the table name
-    (bronze_sales, silver_dim_customer, gold_fact_sales) because Bronze/
-    Silver/Gold versions of the same logical table would otherwise
-    collide in a single schema - three separate schemas (one per layer)
-    is the alternative, cleaner at larger scale, but a single
-    'lakehouse' schema with prefixed names is simpler to set up on
-    Community Edition and is what notebooks/00_setup_unity_catalog.sql
-    provisions by default.
-    """
-    app_config = load_app_config()
-    uc_config = app_config.get("unity_catalog", {})
-
-    if not uc_config.get("enabled", False):
-        return None
-
-    catalog = uc_config["catalog"]
-    schema = uc_config["schema"]
-    return f"{catalog}.{schema}.{layer}_{table_name}"

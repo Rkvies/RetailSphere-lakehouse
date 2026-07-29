@@ -8,9 +8,9 @@ from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
-from src.common.config_loader import load_table_config, resolve_layer_path, resolve_catalog_table_name
+from src.common.config_loader import load_table_config, resolve_table_ref
 from src.common.data_quality import validate
-from src.common.delta_utils import scd2_merge, register_as_table
+from src.common.delta_utils import scd2_merge, _write_delta
 from src.common.logger import get_logger, log_pipeline_event
 from src.common.spark_session import get_spark_session
 from src.transformation.silver_processor import _read_incremental_bronze
@@ -33,15 +33,15 @@ def process_dimension_table(table_name: str) -> dict[str, int]:
         raise ValueError(f"'{table_name}' is not configured as scd_type=2.")
 
     spark = get_spark_session()
-    bronze_path = resolve_layer_path("bronze", table_name)
-    silver_path = resolve_layer_path("silver", table_name)
+    bronze_ref = resolve_table_ref("bronze", table_name)
+    silver_ref = resolve_table_ref("silver", table_name)
     business_key = table_conf["business_key"]
     tracked_columns = table_conf["tracked_columns"]
     surrogate_key_col = table_conf["surrogate_key_col"]
 
     log_pipeline_event(logger, "silver_dimension_processing_started", table=table_name)
 
-    incremental_df = _read_incremental_bronze(spark, bronze_path, silver_path)
+    incremental_df = _read_incremental_bronze(spark, bronze_ref, silver_ref)
     incremental_count = incremental_df.count()
 
     if incremental_count == 0:
@@ -55,15 +55,14 @@ def process_dimension_table(table_name: str) -> dict[str, int]:
     result = validate(deduplicated_df, dq_rules=dq_rules, table_name=f"{table_name}_silver")
 
     if result.invalid_count > 0:
-        quarantine_path = resolve_layer_path("quarantine", f"{table_name}_silver")
-        result.invalid_df.write.format("delta").mode("append").save(quarantine_path)
+        quarantine_ref = resolve_table_ref("quarantine", f"{table_name}_silver")
+        _write_delta(result.invalid_df, quarantine_ref, mode="append")
 
     scd2_merge(
-        spark, result.valid_df, silver_path,
+        spark, result.valid_df, silver_ref,
         business_key=business_key, tracked_columns=tracked_columns,
         surrogate_key_col=surrogate_key_col,
     )
-    register_as_table(spark, silver_path, resolve_catalog_table_name("silver", table_name))
 
     log_pipeline_event(
         logger, "silver_dimension_processing_complete", table=table_name,

@@ -58,10 +58,13 @@ Verify: `dbutils.fs.ls("/Volumes/retail_lakehouse/lakehouse/landing/sales/")`
 from src.pipelines.run_bronze_pipeline import main as run_bronze
 print(run_bronze())
 ```
-Verify:
+Verify — Bronze is now a real managed catalog table, query it directly by name:
 ```python
-from src.common.config_loader import resolve_layer_path
-display(spark.read.format("delta").load(resolve_layer_path("bronze", "sales")))
+display(spark.table("retail_lakehouse.lakehouse.bronze_sales"))
+```
+```sql
+%sql
+SELECT * FROM retail_lakehouse.lakehouse.bronze_sales LIMIT 10;
 ```
 
 ## Step 5 — Run Silver
@@ -72,8 +75,9 @@ print(run_silver())
 ```
 Verify:
 ```python
-display(spark.read.format("delta").load(resolve_layer_path("silver", "customer")))
+display(spark.table("retail_lakehouse.lakehouse.silver_customer"))
 ```
+Confirm `customer_sk`, `is_current`, `effective_start_date` are populated.
 
 ## Step 6 — Run Gold
 
@@ -84,20 +88,18 @@ print(run_gold())
 Verify (the real payoff — proves the point-in-time join worked):
 ```python
 display(
-    spark.read.format("delta").load(resolve_layer_path("gold", "fact_sales"))
+    spark.table("retail_lakehouse.lakehouse.gold_fact_sales")
     .groupBy("customer_sk").sum("line_total")
     .orderBy("sum(line_total)", ascending=False)
     .limit(10)
 )
 ```
 
-**You can now also query it as a real catalog table**, not just by path — every write registers itself in Unity Catalog automatically:
+**Every Bronze/Silver/Gold table is a real, managed Unity Catalog table** — not a raw Delta path you have to know — because `merge_upsert`/`scd2_merge`/writes now target `catalog.schema.table` names directly via `saveAsTable`, not a Volume path with a separate registration step:
 ```sql
 %sql
 SHOW TABLES IN retail_lakehouse.lakehouse;
-SELECT * FROM retail_lakehouse.lakehouse.gold_fact_sales LIMIT 10;
 ```
-If you ran the pipeline *before* this registration fix and only see raw Parquet/Delta files in Catalog Explorer (not table objects), run `notebooks/register_existing_tables.py` once to catch up your existing data — it registers what's already there without re-running Bronze/Silver/Gold.
 
 ## Full One-Cell Run (quick end-to-end demo)
 
@@ -112,7 +114,6 @@ from src.ingestion.data_generator import main as generate_data
 from src.pipelines.run_bronze_pipeline import main as run_bronze
 from src.pipelines.run_silver_pipeline import main as run_silver
 from src.pipelines.run_gold_pipeline import main as run_gold
-from src.common.config_loader import resolve_layer_path
 
 print("Generating data..."); generate_data()
 print("Bronze:", run_bronze())
@@ -120,7 +121,7 @@ print("Silver:", run_silver())
 print("Gold:", run_gold())
 
 display(
-    spark.read.format("delta").load(resolve_layer_path("gold", "fact_sales"))
+    spark.table("retail_lakehouse.lakehouse.gold_fact_sales")
     .groupBy("customer_sk").sum("line_total")
     .orderBy("sum(line_total)", ascending=False)
     .limit(10)

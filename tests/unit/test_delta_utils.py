@@ -1,4 +1,10 @@
-from src.common.delta_utils import merge_upsert, scd2_merge
+from src.common.delta_utils import merge_upsert, scd2_merge, _is_catalog_ref
+
+
+def test_is_catalog_ref_detects_path_vs_catalog_name():
+    assert _is_catalog_ref("data/bronze/sales") is False
+    assert _is_catalog_ref("/Volumes/retail_lakehouse/lakehouse/landing/sales") is False
+    assert _is_catalog_ref("retail_lakehouse.lakehouse.bronze_sales") is True
 
 
 def test_merge_upsert_initial_write_creates_table(spark, tmp_path):

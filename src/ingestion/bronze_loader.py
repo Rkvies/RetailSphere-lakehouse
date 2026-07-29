@@ -15,9 +15,9 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.types import StructType
 
-from src.common.config_loader import load_table_config, resolve_layer_path, resolve_catalog_table_name
+from src.common.config_loader import load_table_config, resolve_layer_path, resolve_table_ref
 from src.common.data_quality import validate
-from src.common.delta_utils import register_as_table
+from src.common.delta_utils import _write_delta
 from src.common.exception_handler import SchemaValidationError, SourceFileNotFoundError
 from src.common.logger import get_logger, log_pipeline_event
 from src.common.spark_session import get_spark_session
@@ -76,15 +76,13 @@ def run_bronze_ingestion(table_name: str) -> dict[str, int]:
     dq_rules = table_conf.get("dq_rules", [])
     result = validate(tagged_df, dq_rules=dq_rules, table_name=table_name)
 
-    bronze_path = resolve_layer_path("bronze", table_name)
-    quarantine_path = resolve_layer_path("quarantine", table_name)
+    bronze_ref = resolve_table_ref("bronze", table_name)
+    quarantine_ref = resolve_table_ref("quarantine", table_name)
 
-    result.valid_df.write.format("delta").mode("append").partitionBy("_ingest_date").save(bronze_path)
-    register_as_table(spark, bronze_path, resolve_catalog_table_name("bronze", table_name))
+    _write_delta(result.valid_df, bronze_ref, mode="append", partition_by=["_ingest_date"])
 
     if result.invalid_count > 0:
-        result.invalid_df.write.format("delta").mode("append").save(quarantine_path)
-        register_as_table(spark, quarantine_path, resolve_catalog_table_name("quarantine", table_name))
+        _write_delta(result.invalid_df, quarantine_ref, mode="append")
 
     log_pipeline_event(
         logger, "bronze_ingestion_complete", table=table_name, batch_id=batch_id,

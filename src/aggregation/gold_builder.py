@@ -8,8 +8,8 @@ from __future__ import annotations
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 
-from src.common.config_loader import resolve_layer_path, resolve_catalog_table_name
-from src.common.delta_utils import register_as_table
+from src.common.config_loader import resolve_table_ref
+from src.common.delta_utils import _read_delta, _write_delta, _is_catalog_ref
 from src.common.logger import get_logger, log_pipeline_event
 from src.common.spark_session import get_spark_session
 
@@ -40,10 +40,10 @@ def build_fact_sales_gold() -> dict[str, int]:
     spark = get_spark_session()
     log_pipeline_event(logger, "gold_fact_sales_build_started")
 
-    fact_sales = spark.read.format("delta").load(resolve_layer_path("silver", "sales"))
-    dim_customer = spark.read.format("delta").load(resolve_layer_path("silver", "customer"))
-    dim_product = spark.read.format("delta").load(resolve_layer_path("silver", "product"))
-    dim_store = spark.read.format("delta").load(resolve_layer_path("silver", "store"))
+    fact_sales = _read_delta(spark, resolve_table_ref("silver", "sales"))
+    dim_customer = _read_delta(spark, resolve_table_ref("silver", "customer"))
+    dim_product = _read_delta(spark, resolve_table_ref("silver", "product"))
+    dim_store = _read_delta(spark, resolve_table_ref("silver", "store"))
 
     with_customer_sk = _point_in_time_join(
         fact_sales, dim_customer,
@@ -79,13 +79,12 @@ def build_fact_sales_gold() -> dict[str, int]:
     gold_fact_sales = gold_fact_sales.select(*select_cols)
 
     row_count = gold_fact_sales.count()
-    gold_path = resolve_layer_path("gold", "fact_sales")
-    gold_fact_sales.write.format("delta").mode("overwrite").partitionBy("sale_date").save(gold_path)
+    gold_ref = resolve_table_ref("gold", "fact_sales")
+    _write_delta(gold_fact_sales, gold_ref, mode="overwrite", partition_by=["sale_date"])
 
     zorder_cols = "customer_sk, product_sk"
-    spark.sql(f"OPTIMIZE delta.`{gold_path}` ZORDER BY ({zorder_cols})")
-
-    register_as_table(spark, gold_path, resolve_catalog_table_name("gold", "fact_sales"))
+    optimize_target = gold_ref if _is_catalog_ref(gold_ref) else f"delta.`{gold_ref}`"
+    spark.sql(f"OPTIMIZE {optimize_target} ZORDER BY ({zorder_cols})")
 
     log_pipeline_event(logger, "gold_fact_sales_build_complete", row_count=row_count)
     return {"row_count": row_count}

@@ -2,6 +2,13 @@
 src/common/delta_utils.py
 Generic, config-driven Delta merge utilities: merge_upsert (facts / SCD1)
 and scd2_merge (SCD Type 2 dimensions).
+
+Both work against a "ref" that is EITHER a filesystem path (local dev,
+or a Volume for landing files) OR a managed Unity Catalog table name
+("catalog.schema.table"). Callers get this ref from
+config_loader.resolve_table_ref() and never need to know which kind
+it is - _is_catalog_ref() detects it here, once, and every function
+branches accordingly.
 """
 from __future__ import annotations
 
@@ -14,38 +21,50 @@ from src.common.logger import get_logger, log_pipeline_event
 logger = get_logger(__name__)
 
 
-def register_as_table(spark: SparkSession, table_path: str, catalog_table_name: str) -> None:
+def _is_catalog_ref(ref: str) -> bool:
     """
-    Registers a path-based Delta table as a named Unity Catalog table
-    (CREATE TABLE ... USING DELTA LOCATION), so it appears in Catalog
-    Explorer and is queryable as `catalog.schema.table` rather than
-    only visible as raw Delta/Parquet files under a Volume path.
+    A catalog table name looks like 'catalog.schema.table' - no
+    slashes. A filesystem path always contains at least one '/'
+    (absolute local path, /Volumes/..., or relative 'data/...').
+    """
+    return "/" not in ref
 
-    This is idempotent (IF NOT EXISTS) and safe to call after every
-    write - it does NOT copy or move data, it just points a catalog
-    entry at the existing path. If catalog_table_name is None (e.g.
-    unity_catalog.enabled=false in config, as in local dev), this is a
-    silent no-op - callers don't need to branch on environment
-    themselves.
-    """
-    if catalog_table_name is None:
+
+def _table_exists(spark: SparkSession, ref: str) -> bool:
+    if _is_catalog_ref(ref):
+        return spark.catalog.tableExists(ref)
+    return DeltaTable.isDeltaTable(spark, ref)
+
+
+def _read_delta(spark: SparkSession, ref: str) -> DataFrame:
+    if _is_catalog_ref(ref):
+        return spark.table(ref)
+    return spark.read.format("delta").load(ref)
+
+
+def _get_delta_table(spark: SparkSession, ref: str) -> DeltaTable:
+    if _is_catalog_ref(ref):
+        return DeltaTable.forName(spark, ref)
+    return DeltaTable.forPath(spark, ref)
+
+
+def _write_delta(df: DataFrame, ref: str, mode: str, partition_by: list[str] | None = None) -> None:
+    writer = df.write.format("delta").mode(mode)
+    if partition_by:
+        writer = writer.partitionBy(*partition_by)
+    if _is_catalog_ref(ref):
+        writer.saveAsTable(ref)
+    else:
+        writer.save(ref)
+
+
+def merge_upsert(spark: SparkSession, source_df: DataFrame, target_ref: str, business_key: list[str]) -> None:
+    if not _table_exists(spark, target_ref):
+        _write_delta(source_df, target_ref, mode="overwrite")
+        log_pipeline_event(logger, "merge_upsert_initial_write", target=target_ref, row_count=source_df.count())
         return
 
-    spark.sql(f"CREATE TABLE IF NOT EXISTS {catalog_table_name} USING DELTA LOCATION '{table_path}'")
-    log_pipeline_event(logger, "table_registered_in_catalog", table=catalog_table_name, path=table_path)
-
-
-def _table_exists(spark: SparkSession, table_path: str) -> bool:
-    return DeltaTable.isDeltaTable(spark, table_path)
-
-
-def merge_upsert(spark: SparkSession, source_df: DataFrame, target_path: str, business_key: list[str]) -> None:
-    if not _table_exists(spark, target_path):
-        source_df.write.format("delta").mode("overwrite").save(target_path)
-        log_pipeline_event(logger, "merge_upsert_initial_write", target=target_path, row_count=source_df.count())
-        return
-
-    target_table = DeltaTable.forPath(spark, target_path)
+    target_table = _get_delta_table(spark, target_ref)
     join_condition = " AND ".join(f"target.{k} = source.{k}" for k in business_key)
 
     (
@@ -55,13 +74,13 @@ def merge_upsert(spark: SparkSession, source_df: DataFrame, target_path: str, bu
         .whenNotMatchedInsertAll()
         .execute()
     )
-    log_pipeline_event(logger, "merge_upsert_complete", target=target_path, business_key=business_key)
+    log_pipeline_event(logger, "merge_upsert_complete", target=target_ref, business_key=business_key)
 
 
 def scd2_merge(
     spark: SparkSession,
     source_df: DataFrame,
-    target_path: str,
+    target_ref: str,
     business_key: list[str],
     tracked_columns: list[str],
     surrogate_key_col: str,
@@ -71,7 +90,7 @@ def scd2_merge(
         F.sha2(F.concat_ws("||", *[F.col(c).cast("string") for c in tracked_columns]), 256),
     )
 
-    if not _table_exists(spark, target_path):
+    if not _table_exists(spark, target_ref):
         initial_df = (
             source_hashed
             .withColumn(surrogate_key_col, F.monotonically_increasing_id())
@@ -79,11 +98,11 @@ def scd2_merge(
             .withColumn("effective_end_date", F.lit(None).cast("date"))
             .withColumn("is_current", F.lit(True))
         )
-        initial_df.write.format("delta").mode("overwrite").save(target_path)
-        log_pipeline_event(logger, "scd2_initial_load", target=target_path, row_count=initial_df.count())
+        _write_delta(initial_df, target_ref, mode="overwrite")
+        log_pipeline_event(logger, "scd2_initial_load", target=target_ref, row_count=initial_df.count())
         return
 
-    target_table = DeltaTable.forPath(spark, target_path)
+    target_table = _get_delta_table(spark, target_ref)
     target_current_df = target_table.toDF().filter(F.col("is_current") == True)  # noqa: E712
     join_condition = " AND ".join(f"t.{k} = s.{k}" for k in business_key)
 
@@ -110,7 +129,7 @@ def scd2_merge(
             .withColumn("effective_end_date", F.lit(None).cast("date"))
             .withColumn("is_current", F.lit(True))
         )
-        new_rows.write.format("delta").mode("append").save(target_path)
-        log_pipeline_event(logger, "scd2_merge_complete", target=target_path, new_or_changed_count=new_rows.count())
+        _write_delta(new_rows, target_ref, mode="append")
+        log_pipeline_event(logger, "scd2_merge_complete", target=target_ref, new_or_changed_count=new_rows.count())
     else:
-        log_pipeline_event(logger, "scd2_merge_noop", target=target_path, reason="no_new_or_changed_rows")
+        log_pipeline_event(logger, "scd2_merge_noop", target=target_ref, reason="no_new_or_changed_rows")
